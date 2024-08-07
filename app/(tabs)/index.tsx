@@ -1,70 +1,149 @@
-import { Image, StyleSheet, Platform } from 'react-native';
+import { useEffect, useState } from "react";
+import styles from "./styles";
+import {
+  ScrollView,
+  TextInput,
+  View,
+  Text,
+  Alert,
+  AlertIOS,
+  Pressable,
+  Platform,
+} from "react-native";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Categories from "@/components/TodoCategories";
+import { FontAwesome } from "@expo/vector-icons";
+import { Checkbox } from "expo-checkbox";
+import { Ionicons } from "@expo/vector-icons";
+import { allTodo, timeOfTheDay, TodoArray } from "./homePage/Example";
+import uuid from "react-native-uuid";
+import Past from "./homePage/TodoAlerts";
+import TodoAlerts from "./homePage/TodoAlerts";
 
-export default function HomeScreen() {
+export default () => {
+  const [todoArray, setTodoArray] = useState(allTodo);
+  const [todoItem, setTodoItem] = useState("");
+
+  const random: string | number[] = uuid.v4();
+
+  const getAlert = () => {
+    todoArray.map((todo) => {
+      if (todo.reminderDate == "") {
+        todo.alert = "NO ALERT";
+      } else if (
+        todo.reminderDate.valueOf() > new Date().toDateString().valueOf()
+      ) {
+        todo.alert = "SOON";
+      } else if (
+        todo.reminderDate.valueOf() < new Date().toDateString().valueOf()
+      ) {
+        todo.alert = "PAST";
+      } else {
+        todo.alert = "TODAY";
+      }
+    });
+  };
+
+  useEffect(() => getAlert(), []);
+
+  // console.log();
+
+  const addTodoItem = () => {
+    const newTask: Array<TodoArray> = {
+      id: random,
+      title: todoItem,
+      reminderDate: "",
+      alert: getAlert(),
+      completed: false,
+      important: false,
+    };
+    const newArray = [...todoArray, newTask];
+    if (todoItem !== "") {
+      setTodoArray(newArray);
+      console.log(newArray);
+    } else {
+      //instead of this alert we will later create a page for creating a todo with time and category.
+      if (Platform.OS == "ios") {
+        AlertIOS.alert(
+          "Cannot create an empty task",
+          "Please input a task to continue"
+        );
+      } else {
+        Alert.alert(
+          "Cannot create an empty task",
+          "Please input a task to continue"
+        );
+      }
+    }
+    setTodoItem("");
+  };
+
+  function deleteItem() {
+    const newArray = todoArray.filter((each) => each.completed == false);
+    try {
+      if (newArray.length == todoArray.length) {
+        Alert.alert(
+          "Select a todo first!",
+          "You have to select a todo or more, before you can delete!"
+        );
+      } else {
+        Alert.alert(
+          "Delete todo(s)",
+          "Are you sure you want to delete these items?",
+          [
+            { text: "YES", onPress: () => setTodoArray(newArray) },
+            { text: "NO" },
+          ]
+        );
+      }
+    } catch (err) {
+      console.error("handled err:", err);
+    }
+  }
+  const getPastTodo = todoArray.filter((todo) => todo.alert === "PAST");
+  const getTodayTodo = todoArray.filter((todo) => todo.alert === "TODAY");
+  const getSoonTodo = todoArray.filter((todo) => todo.alert === "SOON");
+  const getNoAlertTodo = todoArray.filter((todo) => todo.alert === "");
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({ ios: 'cmd + d', android: 'cmd + m' })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          Tap the Explore tab to learn more about what's included in this starter app.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          When you're ready, run{' '}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
-  );
-}
+    <SafeAreaView style={styles.container}>
+      <View style={[styles.flexContainer, { marginBottom: 20 }]}>
+        <Categories style={styles.hoverCategory} title={"All"} />
+        {timeOfTheDay?.map((item) => {
+          return (
+            <Pressable
+              key={item.title}
+              style={styles.hoverCategory}
+              // onHoverIn={() => setHoverBtn(true)}
+            >
+              <Text style={styles.categoryBtnTxt}>{item.title}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
+      <ScrollView style={styles.todoContainer}>
+        <View>
+          <TodoAlerts todoAlert={getNoAlertTodo} alertTitle={"NO ALERT"} />
+          <TodoAlerts todoAlert={getPastTodo} alertTitle={"PAST"} />
+          <TodoAlerts todoAlert={getTodayTodo} alertTitle={"TODAY"} />
+          <TodoAlerts todoAlert={getSoonTodo} alertTitle={"SOON"} />
+        </View>
+      </ScrollView>
+      <View style={[styles.addTodo, styles.flexContainer]}>
+        <TextInput
+          value={todoItem}
+          // onPress={addTodoItem}
+          onChangeText={setTodoItem}
+          style={styles.todoInput}
+          placeholder="enter your todo"
+        />
+        <Pressable onPress={addTodoItem} style={styles.addTodoBtn}>
+          <Ionicons name="add-circle-outline" size={58} color="indigo" />
+        </Pressable>
+      </View>
+    </SafeAreaView>
+  );
+};
