@@ -35,16 +35,23 @@ const styles = StyleSheet.create({
   },
   todoContainer: {
     marginTop: 10,
-    bottom: '1%',
+    bottom: "1%",
     textAlign: "left",
-    width:'100%',
+    width: "100%",
   },
-  alertTodos : {
+  alertTodos: {
     padding: 5,
   },
   eachTodo: {
     justifyContent: "flex-start",
-
+    marginVertical: 5,
+    padding: 10,
+    backgroundColor: "lavender",
+  },
+  todoCheckbox: {
+    borderRadius: 10,
+    alignSelf: "center",
+    padding: 5,
   },
   todoText: {
     alignSelf: "center",
@@ -53,19 +60,18 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     color: "dark-indigo",
     fontWeight: "400",
-    // marginBottom: 12,
     margin: 12,
   },
   todoAlertTitle: {
     // marginTop: 20,
     fontSize: 18,
-    fontWeight: '800',
-    textTransform: 'capitalize',
+    fontWeight: "800",
+    textTransform: "capitalize",
     letterSpacing: 1,
-    marginBottom: 10
+    marginBottom: 10,
   },
   addTodo: {
-    width: '100%',
+    width: "100%",
     padding: 10,
   },
   todoInput: {
@@ -77,13 +83,11 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 1,
   },
-  AddTodoBtn: {
-    
-  },
+  addTodoBtn: {},
   todoAlerts: {
-    position: 'absolute',
+    position: "absolute",
     left: 20,
-  }
+  },
 });
 
 export default styles;

@@ -9,23 +9,24 @@ import {
   AlertIOS,
   Pressable,
   Platform,
+  Keyboard,
+  ToastAndroid,
 } from "react-native";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Categories from "@/components/TodoCategories";
-import { FontAwesome } from "@expo/vector-icons";
-import { Checkbox } from "expo-checkbox";
 import { Ionicons } from "@expo/vector-icons";
 import { allTodo, timeOfTheDay, TodoArray } from "./homePage/Example";
 import uuid from "react-native-uuid";
-import Past from "./homePage/TodoAlerts";
-import TodoAlerts from "./homePage/TodoAlerts";
+import Checkbox from "expo-checkbox";
+import * as Notifications from "expo-notifications";
+import AllTodo from "./homePage/AllTodo";
 
 export default () => {
-  const [todoArray, setTodoArray] = useState(allTodo);
+  const [todoArray, setTodoArray] = useState<TodoArray>(allTodo);
   const [todoItem, setTodoItem] = useState("");
-
+  const [showTrash, setShowTrash] = useState<Boolean>(false);
+  const [check, setCheck] = useState<Boolean>(false);
   const random: string | number[] = uuid.v4();
 
   const getAlert = () => {
@@ -46,42 +47,41 @@ export default () => {
     });
   };
 
-  useEffect(() => getAlert(), []);
-
-  // console.log();
-
-  const addTodoItem = () => {
-    const newTask: Array<TodoArray> = {
+  const addNoAlertTodoItem = () => {
+    const newTask = {
       id: random,
       title: todoItem,
       reminderDate: "",
-      alert: getAlert(),
+      alert: "",
       completed: false,
       important: false,
     };
-    const newArray = [...todoArray, newTask];
+    const newArray = [newTask, ...todoArray];
+
     if (todoItem !== "") {
       setTodoArray(newArray);
-      console.log(newArray);
+      getAlert();
+      // console.log(newArray);
     } else {
       //instead of this alert we will later create a page for creating a todo with time and category.
       if (Platform.OS == "ios") {
-        AlertIOS.alert(
-          "Cannot create an empty task",
-          "Please input a task to continue"
-        );
+        AlertIOS.alert("Empty task", "Please input a task to continue!");
       } else {
-        Alert.alert(
-          "Cannot create an empty task",
-          "Please input a task to continue"
-        );
+        Alert.alert("Empty task", "Please enter a task first, to continue!");
       }
     }
     setTodoItem("");
+    Keyboard.dismiss();
+    ToastAndroid.showWithGravity(
+      `Todo created successfully - ${newTask.title}`,
+      ToastAndroid.LONG,
+      0
+    );
   };
 
   function deleteItem() {
     const newArray = todoArray.filter((each) => each.completed == false);
+    const count: number = todoArray.length - newArray.length;
     try {
       if (newArray.length == todoArray.length) {
         Alert.alert(
@@ -93,7 +93,14 @@ export default () => {
           "Delete todo(s)",
           "Are you sure you want to delete these items?",
           [
-            { text: "YES", onPress: () => setTodoArray(newArray) },
+            {
+              text: "YES",
+              onPress: () => {
+                setTodoArray(newArray);
+                setShowTrash(false);
+                Alert.alert(`${count} item(s) successfully deleted!`);
+              },
+            },
             { text: "NO" },
           ]
         );
@@ -102,10 +109,17 @@ export default () => {
       console.error("handled err:", err);
     }
   }
-  const getPastTodo = todoArray.filter((todo) => todo.alert === "PAST");
-  const getTodayTodo = todoArray.filter((todo) => todo.alert === "TODAY");
-  const getSoonTodo = todoArray.filter((todo) => todo.alert === "SOON");
-  const getNoAlertTodo = todoArray.filter((todo) => todo.alert === "");
+
+  const markAsCompleted = (id: string | string[]) => {
+    let marked = todoArray.map((todo) =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    );
+    setTodoArray(marked);
+  };
+  useEffect(() => {
+    let newArray = todoArray.filter((each) => each.completed == true);
+    newArray.length ? setShowTrash(true) : setShowTrash(false);
+  }, [todoArray]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,13 +137,26 @@ export default () => {
           );
         })}
       </View>
-
+      {showTrash && (
+        <Pressable
+          style={{
+            backgroundColor: "none",
+            padding: 0,
+            paddingHorizontal: 10,
+            alignItems: "flex-end",
+          }}
+        >
+          <Ionicons
+            name="trash"
+            size={24}
+            color={"darkred"}
+            onPress={deleteItem}
+          />
+        </Pressable>
+      )}
       <ScrollView style={styles.todoContainer}>
-        <View>
-          <TodoAlerts todoAlert={getNoAlertTodo} alertTitle={"NO ALERT"} />
-          <TodoAlerts todoAlert={getPastTodo} alertTitle={"PAST"} />
-          <TodoAlerts todoAlert={getTodayTodo} alertTitle={"TODAY"} />
-          <TodoAlerts todoAlert={getSoonTodo} alertTitle={"SOON"} />
+        <View style={{ margin: 10 }}>
+          <AllTodo todoArray={todoArray} markAsCompleted={markAsCompleted} />
         </View>
       </ScrollView>
       <View style={[styles.addTodo, styles.flexContainer]}>
@@ -140,7 +167,7 @@ export default () => {
           style={styles.todoInput}
           placeholder="enter your todo"
         />
-        <Pressable onPress={addTodoItem} style={styles.addTodoBtn}>
+        <Pressable onPress={addNoAlertTodoItem} style={styles.addTodoBtn}>
           <Ionicons name="add-circle-outline" size={58} color="indigo" />
         </Pressable>
       </View>
